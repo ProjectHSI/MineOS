@@ -6,6 +6,7 @@ local paths = require("Paths")
 local system = require("System")
 local image = require("Image")
 local SHA = require("SHA-256")
+local salt = require("Salt")
 
 local module = {}
 
@@ -164,7 +165,9 @@ module.onTouch = function()
 	passwordInput.onInputFinished = function()
 		if #passwordInput.text > 0 and #submitPasswordInput.text > 0 then
 			if passwordInput.text == submitPasswordInput.text then
-				userSettings.securityPassword = SHA.hash(passwordInput.text)
+				local saltText = salt.returnSalt()
+				userSettings.securityPassword = SHA.hash(saltText + passwordInput.text)
+				userSettings.securitySalt = saltText
 				system.saveUserSettings()
 
 				passwordInput.text = ""

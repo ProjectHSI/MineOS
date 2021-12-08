@@ -9,6 +9,7 @@ local GUI = require("GUI")
 local paths = require("Paths")
 local text = require("Text")
 local number = require("Number")
+local salt = require("Salt")
 
 --------------------------------------------------------------------------------
 
@@ -2725,7 +2726,8 @@ function system.createUser(name, language, password, wallpaper, screensaver)
 	
 	-- Injecting preferred fields
 	defaultSettings.localizationLanguage = language
-	defaultSettings.securityPassword = password and require("SHA-256").hash(password)
+	defaultSettings.securitySalt = require("Salt").returnSalt()
+	defaultSettings.securityPassword = password and require("SHA-256").hash(defaultSettings.securitySalt + password)
 	defaultSettings.interfaceWallpaperEnabled = wallpaper
 	defaultSettings.interfaceScreensaverEnabled = screensaver
 
@@ -2779,7 +2781,7 @@ function system.authorize()
 			userSettings = system.getDefaultUserSettings()
 		end
 
-		return userSettings.securityPassword
+		return { password = userSettings.securityPassword, salt = userSettings.securitySalt }
 	end
 
 	-- Creating login UI only if there's more than one user with protection
@@ -2837,7 +2839,7 @@ function system.authorize()
 
 				input.onInputFinished = function()
 					if #input.text > 0 then
-						local hash = require("SHA-256").hash(input.text)
+						local hash = require("SHA-256").hash(userSettings.securitySalt + input.text) -- Add salt, otherwise logins will always fail.
 						
 						package.loaded["SHA-256"] = nil
 						input.text = ""
